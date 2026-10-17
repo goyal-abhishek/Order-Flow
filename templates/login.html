@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Login - OrderFlow</title>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='style.css') }}"
+    >
+
+</head>
+
+<body>
+
+<div class="login-container">
+
+    <div class="login-card">
+
+        <h1>🍽️ OrderFlow</h1>
+
+        <p class="muted">
+            Restaurant Order Management
+        </p>
+
+        <h2>Login</h2>
+
+        {% if error %}
+
+        <div class="error">
+            {{ error }}
+        </div>
+
+        {% endif %}
+
+        <form method="post">
+
+            <label>
+                Username
+
+                <input
+                    type="text"
+                    name="username"
+                    required
+                    placeholder="Enter username"
+                >
+
+            </label>
+
+            <label>
+                Password
+
+                <input
+                    type="password"
+                    name="password"
+                    required
+                    placeholder="Enter password"
+                >
+
+            </label>
+
+            <button
+                class="primary full"
+                type="submit"
+            >
+                Login
+            </button>
+
+        </form>
+
+    </div>
+
+</div>
+
+</body>
+
+</html>

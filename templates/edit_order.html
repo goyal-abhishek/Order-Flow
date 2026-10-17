@@ -1,0 +1,569 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Order Management</title>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='style.css') }}"
+    >
+
+</head>
+
+<body>
+
+<div class="app">
+
+    <!-- SIDEBAR -->
+
+    <aside class="sidebar">
+
+        <h1>🍽️ OrderFlow</h1>
+
+        <p class="muted">
+            Restaurant Order Management
+        </p>
+
+        <nav>
+
+            <a
+                class="{{ 'active' if not selected else '' }}"
+                href="/"
+            >
+                Dashboard
+            </a>
+
+            {% for s in statuses %}
+
+            <a
+                class="{{ 'active' if selected == s else '' }}"
+                href="/?status={{ s }}"
+            >
+                {{ s }}
+            </a>
+
+            {% endfor %}
+
+        </nav>
+
+    </aside>
+
+
+    <!-- MAIN -->
+
+    <main>
+
+        <header>
+
+            <div>
+
+                <h2>Order Management</h2>
+
+                <p>
+                    Track every order from creation to completion.
+                </p>
+
+            </div>
+
+            <div>
+
+                <span>
+                    Logged in as:
+                    <b>{{ session["role"]|capitalize }}</b>
+                </span>
+
+                <a
+                    href="/logout"
+                    class="logout"
+                >
+                    Logout
+                </a>
+
+                <button
+                    class="primary"
+                    onclick="openModal()"
+                >
+                    + New Order
+                </button>
+
+            </div>
+
+        </header>
+
+
+        <!-- STATS -->
+
+        <section class="stats">
+
+            {% for s in statuses %}
+
+            <a
+                class="stat"
+                href="/?status={{ s }}"
+            >
+
+                <span>{{ s }}</span>
+
+                <strong>
+                    {{ counts[s] }}
+                </strong>
+
+            </a>
+
+            {% endfor %}
+
+        </section>
+
+
+        <!-- LIFECYCLE -->
+
+        <section class="lifecycle">
+
+            {% for s in statuses %}
+
+            <div
+                class="step {{ 'done' if counts[s] > 0 else '' }}"
+            >
+
+                <span>
+                    {{ loop.index }}
+                </span>
+
+                {{ s }}
+
+            </div>
+
+            {% if not loop.last %}
+
+            <b>→</b>
+
+            {% endif %}
+
+            {% endfor %}
+
+        </section>
+
+
+        <!-- ORDERS -->
+
+        <section class="panel">
+
+            <div class="panel-head">
+
+                <h3>
+                    {{ selected if selected else "All Orders" }}
+                </h3>
+
+                {% if selected %}
+
+                <a href="/">
+                    Clear filter
+                </a>
+
+                {% endif %}
+
+            </div>
+
+
+            {% if orders %}
+
+            <div class="table-wrap">
+
+                <table>
+
+                    <thead>
+
+                    <tr>
+
+                        <th>#</th>
+
+                        <th>Customer</th>
+
+                        {% if session["role"] == "admin" %}
+
+                        <th>Phone</th>
+
+                        <th>Address</th>
+
+                        {% endif %}
+
+                        <th>Type</th>
+
+                        <th>Items</th>
+
+                        <th>Total</th>
+
+                        <th>Status</th>
+
+                        <th>Action</th>
+
+                        {% if session["role"] == "admin" %}
+
+                        <th>Edit</th>
+
+                        <th>Delete</th>
+
+                        {% endif %}
+
+                    </tr>
+
+                    </thead>
+
+
+                    <tbody>
+
+                    {% for o in orders %}
+
+                    <tr>
+
+                        <!-- DISPLAY NUMBER -->
+
+                        <td>
+                            #{{ loop.index }}
+                        </td>
+
+
+                        <!-- CUSTOMER -->
+
+                        <td>
+
+                            <b>
+                                {{ o.customer }}
+                            </b>
+
+                            <small>
+                                {{ o.created_at }}
+                            </small>
+
+                        </td>
+
+
+                        <!-- ADMIN ONLY -->
+
+                        {% if session["role"] == "admin" %}
+
+                        <td>
+                            {{ o.phone or "Not provided" }}
+                        </td>
+
+                        <td>
+                            {{ o.address or "Not provided" }}
+                        </td>
+
+                        {% endif %}
+
+
+                        <!-- TYPE -->
+
+                        <td>
+
+                            <span class="type">
+                                {{ o.order_type }}
+                            </span>
+
+                        </td>
+
+
+                        <!-- ITEMS -->
+
+                        <td>
+                            {{ o.items }}
+                        </td>
+
+
+                        <!-- TOTAL -->
+
+                        <td>
+                            ₹{{ "%.2f"|format(o.total) }}
+                        </td>
+
+
+                        <!-- STATUS -->
+
+                        <td>
+
+                            <span class="badge">
+                                {{ o.status }}
+                            </span>
+
+                        </td>
+
+
+                        <!-- NEXT -->
+
+                        <td>
+
+                            {% if o.status != "Completed" %}
+
+                            <form
+                                method="post"
+                                action="/advance/{{ o.id }}"
+                            >
+
+                                <button class="next">
+                                    Next →
+                                </button>
+
+                            </form>
+
+                            {% else %}
+
+                            <span>
+                                ✓ Done
+                            </span>
+
+                            {% endif %}
+
+                        </td>
+
+
+                        <!-- EDIT -->
+
+                        {% if session["role"] == "admin" %}
+
+                        <td>
+
+                            <a
+                                class="edit"
+                                href="/edit/{{ o.id }}"
+                            >
+                                ✏️ Edit
+                            </a>
+
+                        </td>
+
+
+                        <!-- DELETE -->
+
+                        <td>
+
+                            <form
+                                method="post"
+                                action="/delete/{{ o.id }}"
+                                onsubmit="return confirm('Are you sure you want to delete this order?');"
+                            >
+
+                                <button class="delete">
+                                    🗑️ Delete
+                                </button>
+
+                            </form>
+
+                        </td>
+
+                        {% endif %}
+
+                    </tr>
+
+                    {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+            {% else %}
+
+            <div class="empty">
+
+                No orders yet.
+
+                Click <b>+ New Order</b> to create one.
+
+            </div>
+
+            {% endif %}
+
+        </section>
+
+    </main>
+
+</div>
+
+
+<!-- NEW ORDER MODAL -->
+
+<div
+    id="modal"
+    class="modal"
+>
+
+    <form
+        class="modal-card"
+        method="post"
+        action="/add"
+        onsubmit="return validatePhone()"
+    >
+
+        <button
+            type="button"
+            class="close"
+            onclick="closeModal()"
+        >
+            ×
+        </button>
+
+
+        <h2>
+            Create New Order
+        </h2>
+
+
+        <label>
+
+            Customer
+
+            <input
+                name="customer"
+                required
+                placeholder="Customer name"
+            >
+
+        </label>
+
+
+        <label>
+
+            Phone
+
+            <input
+                id="phone"
+                name="phone"
+                type="number"
+                min="1000000000"
+                max="9999999999"
+                step="1"
+                inputmode="numeric"
+                required
+                placeholder="10-digit phone number"
+            >
+
+        </label>
+
+
+        <label>
+
+            Address
+
+            <textarea
+                name="address"
+                required
+                placeholder="Customer address"
+            ></textarea>
+
+        </label>
+
+
+        <label>
+
+            Order Type
+
+            <select name="order_type">
+
+                {% for t in order_types %}
+
+                <option>
+                    {{ t }}
+                </option>
+
+                {% endfor %}
+
+            </select>
+
+        </label>
+
+
+        <label>
+
+            Items
+
+            <textarea
+                name="items"
+                required
+                placeholder="e.g. 1 Burger, 2 Fries"
+            ></textarea>
+
+        </label>
+
+
+        <label>
+
+            Total (₹)
+
+            <input
+                type="number"
+                name="total"
+                step="0.01"
+                min="0"
+                required
+                placeholder="0.00"
+            >
+
+        </label>
+
+
+        <button
+            class="primary full"
+            type="submit"
+        >
+            Create Order
+        </button>
+
+    </form>
+
+</div>
+
+
+<script>
+
+function openModal() {
+    document.getElementById("modal").style.display = "flex";
+}
+
+function closeModal() {
+    document.getElementById("modal").style.display = "none";
+}
+
+
+function validatePhone() {
+
+    const phone = document.getElementById("phone").value;
+
+    if (
+        phone.length !== 10 ||
+        phone < 1000000000 ||
+        phone > 9999999999
+    ) {
+
+        alert("Phone number must contain exactly 10 digits.");
+
+        return false;
+    }
+
+    return true;
+}
+
+
+window.onclick = function(e) {
+
+    if (e.target.id === "modal") {
+        closeModal();
+    }
+
+}
+
+</script>
+
+</body>
+
+</html>
